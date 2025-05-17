@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 import os
 
+
 class LoggingFormatter(logging.Formatter):
     # Colors
     black = "\x1b[30m"
@@ -31,6 +32,7 @@ class LoggingFormatter(logging.Formatter):
         format = format.replace("(green)", self.green + self.bold)
         formatter = logging.Formatter(format, "%Y-%m-%d %H:%M:%S", style="{")
         return formatter.format(record)
+
 
 def setup_logger(name="discord_bot", level=logging.INFO):
     """

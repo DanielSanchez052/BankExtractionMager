@@ -7,6 +7,7 @@ import pandas as pd
 
 from files_process.etls.pipeline import Step, Pipeline, Transform, Load
 from settings import Settings
+import logger
 
 
 class ETL:
@@ -20,6 +21,7 @@ class ETL:
         self.settings = settings
         self.start_time = time.time()
         self.tasks_data = self._load_tasks()
+        self.logger = logger.setup_logger("etl")
 
     def _load_tasks(self) -> dict:
         """
@@ -48,6 +50,7 @@ class ETL:
 
         kwargs.update(task["extract_provider"]["args"])
         kwargs.update(self.settings.__dict__)
+        kwargs.update({"logger": self.logger})
 
         return Step(
             getattr(extract_provider_module, task["extract_provider"]["method"]),
@@ -70,6 +73,7 @@ class ETL:
 
         kwargs.update(step["args"])
         kwargs.update(self.settings.__dict__)
+        kwargs.update({"logger": self.logger})
 
         if step["type"] == "Transform":
             return Transform(step_provider, *args, **kwargs)
@@ -95,13 +99,14 @@ class ETL:
 
         kwargs.update(task["load_provider"]["args"])
         kwargs.update(self.settings.__dict__)
+        kwargs.update({"logger": self.logger})
 
         return Load(
             getattr(load_provider_module, task["load_provider"]["method"]),
             *args,
             **kwargs
         )
- 
+
     def _create_post_load_provider(self, task: dict, *args, **kwargs) -> Step:
         """
         Crea el proveedor de post-carga para una tarea
@@ -120,6 +125,7 @@ class ETL:
 
             kwargs.update(task["post_load_provider"]["args"])
             kwargs.update(self.settings.__dict__)
+            kwargs.update({"logger": self.logger})
 
             return Step(
                 getattr(post_load_provider_module, task["post_load_provider"]["method"]),
@@ -135,7 +141,7 @@ class ETL:
         Args:
             task: Datos de la tarea a procesar
         """
-        print(f"Executing {task['name']} task")
+        self.logger.info(f"Executing {task['name']} task")
 
         # Crear proveedores
         extract_provider = self._create_extract_provider(task, *args, **kwargs)
@@ -149,6 +155,7 @@ class ETL:
             steps=steps,
             load=load_provider,
             post_load=post_load_provider,
+            logger=self.logger,
         )
         return pipeline.run(*args, **kwargs)
 
@@ -158,5 +165,5 @@ class ETL:
             if task:
                 return self._process_task(task, **kwargs)
             else:
-                print(f"No se encontró la tarea con nombre: {task_name}")
+                self.logger.error(f"No se encontró la tarea con nombre: {task_name}")
         return pd.DataFrame()

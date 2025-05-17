@@ -3,6 +3,7 @@ from pandas import DataFrame, isna
 from typing import List, Union
 
 from files_process.etls.utils import insert_row
+from logger import setup_logger
 
 
 class Step(object):
@@ -48,15 +49,16 @@ class Load(Transform):
         super(Load, self).__init__(*args, **kwargs)
 
 
-class Pipeline(object):
-    """Class to create and run a data pipeline for a Pandas Dataframe.
+class Pipeline:
+    """Class to create and run a data pipeline for a Pandas DataFrame.
 
-    ATTRIBUTES
-    - source: The data source for the pipeline. Either a DataFrame object or fpath of CSV file to read.
+    Attributes:
+    - source: The data source for the pipeline. Either a DataFrame object or file path of a CSV file to read.
+    - steps: List of Steps, Transforms, and Load operations to run.
     - extract: (Optional) The Step to run for extraction.
-    - transformations: List of Steps and Transforms to run.
-    - load: (Optional) The final Step in a pipeline. Should save or
-            pass Pipeline.data somewhere.
+    - load: (Optional) The final Step in a pipeline. Should save or pass Pipeline.data somewhere.
+    - post_load: (Optional) The Step to run after loading.
+    - logger: Logger for the pipeline.
     """
 
     def __init__(self,
@@ -64,7 +66,8 @@ class Pipeline(object):
                  steps: List[Union[Step, Transform, Load]],
                  extract: Step = None,
                  load: Load = None,
-                 post_load: Step = None):
+                 post_load: Step = None,
+                 logger=None):
         self.data = None
         self.source = source
         self.steps = steps
@@ -72,44 +75,32 @@ class Pipeline(object):
         self.load = load
         self.post_load = post_load
         self.log = DataFrame(columns=["identifier", "message"])
+        self.logger = logger or setup_logger("etl_pipeline")
 
     def _extract(self, **kwargs) -> DataFrame:
-        """Run Step for extraction.
-
-        Step is passed Pipeline.source as its first positional arg.
-        """
+        """Run the extraction Step."""
         return self.extract.run(self.log, **kwargs)
 
     def run(self, load=True, **kwargs) -> DataFrame:
-        # set self.data
-        if type(self.source) is DataFrame:
+        if isinstance(self.source, DataFrame):
             self.data = self.source
         else:
-            # Run extraction step if source is fpath
-            # NOTE: Wait til run() to call _extract() in case
-            #       source depends on other Pipelines.
             self.data, self.log = self._extract()
 
-        if (len(self.data) <= 0):
+        if self.data.empty:
             self.log = insert_row(self.log, ["error", "!!WARNING¡¡ data extracted is empty"])
-
-        else:
-            # Run steps
-            for step in self.steps:
-                if isinstance(step, Load):
-                    step.run(self.data, self.log)
-                elif isinstance(step, Transform):
-                    # update self.data with Transform
-                    self.data, self.log = step.run(self.data, self.log)
-                else:
-                    self.log = step.run(self.log)
-
-            # Run load step
-            if self.load is not None:
-                self.log = self.load.run(self.data, self.log)
-
-            # Run post load step
-            if self.post_load is not None:
-                self.log = self.post_load.run(self.log)
-
             return self.log
+
+        for step in self.steps:
+            if isinstance(step, Transform):
+                self.data, self.log = step.run(self.data, self.log)
+            else:
+                self.log = step.run(self.log)
+
+        if self.load:
+            self.log = self.load.run(self.data, self.log)
+
+        if self.post_load:
+            self.log = self.post_load.run(self.log)
+
+        return self.log
