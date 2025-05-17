@@ -2,6 +2,8 @@
 from pandas import DataFrame, isna
 from typing import List, Union
 
+from files_process.etls.utils import insert_row
+
 
 class Step(object):
     """Step to run in a Pipeline.
@@ -24,6 +26,11 @@ class Transform(Step):
     A Transform is a subclass of Step. When run, its function
     is passed Pipeline.data as the first positional argument.
     """
+    def __init__(self, func, *args, **kwargs):
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+
     def run(self, data: DataFrame, log: DataFrame):
         return self.func(data, log, *self.args, **self.kwargs)
 
@@ -56,22 +63,24 @@ class Pipeline(object):
                  source: Union[str, DataFrame],
                  steps: List[Union[Step, Transform, Load]],
                  extract: Step = None,
-                 load: Load = None):
+                 load: Load = None,
+                 post_load: Step = None):
         self.data = None
         self.source = source
         self.steps = steps
         self.extract = extract
         self.load = load
+        self.post_load = post_load
         self.log = DataFrame(columns=["identifier", "message"])
 
-    def _extract(self) -> DataFrame:
+    def _extract(self, **kwargs) -> DataFrame:
         """Run Step for extraction.
 
         Step is passed Pipeline.source as its first positional arg.
         """
-        return self.extract.run(self.log)
+        return self.extract.run(self.log, **kwargs)
 
-    def run(self, load=True):
+    def run(self, load=True, **kwargs) -> DataFrame:
         # set self.data
         if type(self.source) is DataFrame:
             self.data = self.source
@@ -83,7 +92,7 @@ class Pipeline(object):
 
         if (len(self.data) <= 0):
             self.log = insert_row(self.log, ["error", "!!WARNING¡¡ data extracted is empty"])
-            print("!!WARNING¡¡ data is empty")
+
         else:
             # Run steps
             for step in self.steps:
@@ -95,17 +104,12 @@ class Pipeline(object):
                 else:
                     self.log = step.run(self.log)
 
-        # Run load step
-        if self.load is not None:
-            self.load.run(self.data, self.log)
+            # Run load step
+            if self.load is not None:
+                self.log = self.load.run(self.data, self.log)
 
+            # Run post load step
+            if self.post_load is not None:
+                self.log = self.post_load.run(self.log)
 
-def insert_row(df: DataFrame, row: List):
-    insert_loc = df.index.max()
-
-    if isna(insert_loc):
-        df.loc[0] = row
-    else:
-        df.loc[insert_loc + 1] = row
-
-    return df
+            return self.log

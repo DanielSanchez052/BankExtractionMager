@@ -1,13 +1,21 @@
 [
   {
-    "name": "Load data to sqlite",
-    "key": "LoadData",
+    "name": "get transactions from pdf and save to sqlite",
+    "key": "process_transactions",
     "extract_provider": {
-      "script": "files_process/etls/extract/extract_csv.py",
+      "script": "files_process/etls/extract/extract_pdf.py",
       "method": "extract",
       "args": {
-        "separator": ",",
-        "process_dir": "files_process/etls/to_process"
+        "process_dir": "files_process/etls/to_process",
+        "column_mapping": [
+          "Movimiento",
+          "Fecha Operacion",
+          "Fecha Valor",
+          "Concepto",
+          "Cargos",
+          "Abonos",
+          "Saldo"
+        ]
       }
     },
     "steps": [
@@ -23,9 +31,53 @@
       "script": "files_process/etls/load/sqlite.py",
       "method": "save_to_sqlite",
       "args": {
-        "destination": "fake",
+        "destination": "transactions",
         "connection_string": "sqlite:///my_lite_store.db"
       }
+    }
+  },
+  {
+    "name": "get resume from pdf and save to sqlite",
+    "key": "process_resume",
+    "extract_provider": {
+      "script": "files_process/etls/extract/extract_pdf.py",
+      "method": "extract",
+      "args": {
+        "process_dir": "files_process/etls/to_process",
+        "column_mapping": [
+          "Resumen Movimientos",
+          "Nro",
+          "Valor",
+          "Descripcion",
+          "Valor1"
+        ]
+      }
+    },
+    "steps": [
+      {
+        "name": "step_1",
+        "script": "files_process/etls/steps/transform.py",
+        "method": "step_1",
+        "args": {},
+        "type": "Transform"
+      }
+    ],
+    "load_provider": {
+      "script": "files_process/etls/load/sqlite.py",
+      "method": "save_to_sqlite",
+      "args": {
+        "destination": "resume",
+        "connection_string": "sqlite:///my_lite_store.db"
+      }
+    },
+    "post_load_provider": {
+      "name": "post_load",
+      "script": "files_process/etls/steps/post_load.py",
+      "method": "post_load",
+      "args": {
+        "processed_dir": "files_process/etls/processed"
+      },
+      "type": "Step"
     }
   }
 ]

@@ -15,3 +15,6 @@ RESUME_TABLE_COLUMN_NAMES = [
   "Descripcion",
   "Valor1"
 ]
+
+PROCESS_TRANSACTIONS_ETL = "process_transactions"
+PROCESS_RESUME_ETL = "process_resume"

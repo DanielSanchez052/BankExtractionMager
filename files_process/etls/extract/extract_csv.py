@@ -3,9 +3,9 @@ import pandas as pd
 import glob
 
 
-# TODO: revisar la variable PROCESS_DIR y el SEPARATOR para ser reemplazada por variables de el task
+
 def extract(log, *args, **kwargs) -> pd.DataFrame:
-    
+
     settings = kwargs
     
     if (not os.path.exists(settings["process_dir"])):
