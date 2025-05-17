@@ -69,9 +69,6 @@ class Pipeline(object):
 
         Step is passed Pipeline.source as its first positional arg.
         """
-        new_args = [args for args in self.extract.args]
-        new_args.insert(0, self.source)
-        self.extract.args = new_args
         return self.extract.run(self.log)
 
     def run(self, load=True):
@@ -101,10 +98,6 @@ class Pipeline(object):
         # Run load step
         if self.load is not None:
             self.load.run(self.data, self.log)
-
-
-def save_to_csv(df: DataFrame, destination: str):
-    df.to_csv(destination, index=False)
 
 
 def insert_row(df: DataFrame, row: List):

@@ -1,0 +1,31 @@
+[
+  {
+    "name": "Load data to sqlite",
+    "key": "LoadData",
+    "extract_provider": {
+      "script": "files_process/etls/extract/extract_csv.py",
+      "method": "extract",
+      "args": {
+        "separator": ",",
+        "process_dir": "files_process/etls/to_process"
+      }
+    },
+    "steps": [
+      {
+        "name": "step_1",
+        "script": "files_process/etls/steps/transform.py",
+        "method": "step_1",
+        "args": {},
+        "type": "Transform"
+      }
+    ],
+    "load_provider": {
+      "script": "files_process/etls/load/sqlite.py",
+      "method": "save_to_sqlite",
+      "args": {
+        "destination": "fake",
+        "connection_string": "sqlite:///my_lite_store.db"
+      }
+    }
+  }
+]

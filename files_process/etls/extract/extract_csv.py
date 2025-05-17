@@ -1,17 +1,18 @@
 import os
 import pandas as pd
 import glob
-from settings import Settings
 
 
-def extract(log, *args) -> pd.DataFrame:
-    settings = Settings()
+# TODO: revisar la variable PROCESS_DIR y el SEPARATOR para ser reemplazada por variables de el task
+def extract(log, *args, **kwargs) -> pd.DataFrame:
+    
+    settings = kwargs
+    
+    if (not os.path.exists(settings["process_dir"])):
+        os.mkdir(settings["process_dir"])
 
-    if (not os.path.exists(settings.PROCESS_DIR)):
-        os.mkdir(settings.PROCESS_DIR)
+    all_files = glob.glob(os.path.join(settings["process_dir"], "*.csv"))
 
-    all_files = glob.glob(os.path.join(settings.PROCESS_DIR, "*.csv"))
-
-    dfs = pd.concat((pd.read_csv(f, sep=settings.SEPARATOR) for f in all_files))
+    dfs = pd.concat((pd.read_csv(f, sep=settings["separator"]) for f in all_files))
 
     return dfs, log

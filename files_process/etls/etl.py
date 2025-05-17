@@ -1,0 +1,134 @@
+import os
+import json
+import time
+from importlib.machinery import SourceFileLoader
+
+from files_process.etls.pipeline import Step, Pipeline, Transform, Load
+from settings import Settings
+
+class ETL:
+    def __init__(self, settings: Settings):
+        """
+        Inicializa el proceso ETL
+        
+        Args:
+            settings: Configuración del proceso ETL
+        """
+        self.settings = settings
+        self.start_time = time.time()
+        self.tasks_data = self._load_tasks()
+        
+    def _load_tasks(self) -> dict:
+        """
+        Carga las tareas desde el archivo de configuración
+        
+        Returns:
+            dict: Datos de las tareas
+        """
+        with open(self.settings.tasks_file) as tasks_file:
+            return json.load(tasks_file)
+            
+    def _create_extract_provider(self, task: dict) -> Step:
+        """
+        Crea el proveedor de extracción para una tarea
+        
+        Args:
+            task: Datos de la tarea
+            
+        Returns:
+            Step: Proveedor de extracción configurado
+        """
+        extract_provider_module = SourceFileLoader(
+            "extract_provider", 
+            task["extract_provider"]["script"]
+        ).load_module()
+
+        args = {}
+        args.update(task["extract_provider"]["args"])
+        args.update(self.settings.__dict__)
+
+        return Step(
+            getattr(extract_provider_module, task["extract_provider"]["method"]),
+            **args
+        )
+        
+    def _create_step_provider(self, step: dict):
+        """
+        Crea un proveedor de paso según su tipo
+        
+        Args:
+            step: Datos del paso
+            
+        Returns:
+            Step/Transform/Load: Proveedor de paso configurado
+        """
+        step_provider_module = SourceFileLoader(step["name"], step["script"]).load_module()
+        step_provider = getattr(step_provider_module, step["method"])
+        
+        args = {}
+        args.update(step["args"])
+        args.update(self.settings.__dict__)
+        
+        if step["type"] == "Transform":
+            return Transform(step_provider, **args)
+        elif step["type"] == "Step":
+            return Step(step_provider, **args)
+        elif step["type"] == "Load":
+            return Load(step_provider, **args)
+            
+    def _create_load_provider(self, task: dict) -> Load:
+        """
+        Crea el proveedor de carga para una tarea
+        
+        Args:
+            task: Datos de la tarea
+            
+        Returns:
+            Load: Proveedor de carga configurado
+        """
+        load_provider_module = SourceFileLoader(
+            "load_provider", 
+            task["load_provider"]["script"]
+        ).load_module()
+        
+        args = {}
+        args.update(task["load_provider"]["args"])
+        args.update(self.settings.__dict__)
+        
+        return Load(
+            getattr(load_provider_module, task["load_provider"]["method"]),
+            **args
+        )
+        
+    def _process_task(self, task: dict):
+        """
+        Procesa una tarea individual
+        
+        Args:
+            task: Datos de la tarea a procesar
+        """
+        print(f"Executing {task['name']} task")
+        
+        # Crear proveedores
+        extract_provider = self._create_extract_provider(task)
+        steps = [self._create_step_provider(step) for step in task["steps"]]
+        load_provider = self._create_load_provider(task)
+        # Crear y ejecutar pipeline
+        pipeline = Pipeline(
+            source=None,
+            extract=extract_provider,
+            steps=steps,
+            load=load_provider
+        )
+        pipeline.run()
+        
+    def run(self, task_name: str):
+        if task_name:
+            task = next((t for t in self.tasks_data if t["key"] == task_name), None)
+            if task:
+                self._process_task(task)
+            else:
+                print(f"No se encontró la tarea con nombre: {task_name}")
+            return
+            
+        print('It took', time.time() - self.start_time, 'seconds.')
