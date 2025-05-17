@@ -1,5 +1,5 @@
 import os
-from files_process import pdf  
+from files_process.extractors import PDFExtractor  
 
 # Emojis para reacciones
 EMOJI_PROCESSING = "⏳"  # Reloj de arena
@@ -92,7 +92,7 @@ async def handle_extract_message(message, logger, debug_channel):
             filename = f'{DOWNLOAD_FOLDER}/{attachment.filename}'
             await attachment.save(filename)
             
-            if(not pdf.check_pdf_access(filename, password)):
+            if(not PDFExtractor(logger).check_pdf_access(filename, password)):
                 await handle_error(
                     message,
                     attachment.filename,

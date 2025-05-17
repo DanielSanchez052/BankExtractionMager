@@ -2,7 +2,6 @@ import discord
 import os
 from discord.ext import commands
 from . import manage_extact_channel 
-from db.database import Database
 
 class DiscordBot(commands.Bot):
     def __init__(self, logger, settings):

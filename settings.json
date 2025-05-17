@@ -1,4 +1,5 @@
 {
   "dowload_files": "files_process/files",
-  "debugChannelName": "debug"
+  "debugChannelName": "debug",
+  "tasks_file": "files_process/etls/tasks.json"
 }
