@@ -1,23 +1,7 @@
 import pdf
 import pandas as pd
-
-TRANSACTIONS_TABLE_COLUMN_NAMES = [
-    "Movimiento",
-    "Fecha Operacion",
-    "Fecha Valor",
-    "Concepto",
-    "Cargos",
-    "Abonos",
-    "Saldo"
-]
-
-RESUME_TABLE_COLUMN_NAMES = [
-    "Resumen Movimientos",
-    "Nro",
-    "Valor",
-    "Descripcion",
-    "Valor1"
-]
+import datetime
+import constants
 
 
 class Report():
@@ -35,10 +19,10 @@ class Report():
         if tables_readed.n > 0:
             for index, table in enumerate(tables_readed):
                 df = table.df
-                if len(df.columns) == len(TRANSACTIONS_TABLE_COLUMN_NAMES):
-                    self.tables["transactions"] = self.prepare_df(df, TRANSACTIONS_TABLE_COLUMN_NAMES)
-                elif len(df.columns) == len(RESUME_TABLE_COLUMN_NAMES):
-                    self.tables["resume"] = self.prepare_df(df, RESUME_TABLE_COLUMN_NAMES)
+                if len(df.columns) == len(constants.TRANSACTIONS_TABLE_COLUMN_NAMES):
+                    self.tables["transactions"] = self.prepare_df(df, constants.TRANSACTIONS_TABLE_COLUMN_NAMES)
+                elif len(df.columns) == len(constants.RESUME_TABLE_COLUMN_NAMES):
+                    self.tables["resume"] = self.prepare_df(df, constants.RESUME_TABLE_COLUMN_NAMES)
                 else:
                     self.tables[f"table_{index}"] = self.prepare_df(df)
 
@@ -64,3 +48,21 @@ class Report():
             self.transactions_table.reset_index(drop=True, inplace=True)  # Reinicia el índice
 
         return self.transactions_table
+
+    def export_to_json(self) -> None:
+        try:
+            self.extract_tables()
+
+            now = datetime.datetime.now()
+            self.stamp = now.strftime("%Y%m%d_%H%M%S")
+            print(f"Fecha y hora de extracción: {now.strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"Nombre del archivo PDF: {self.filepath}")
+
+            for key, value in self.tables.items():
+                print(f"exportando tabla {key}")
+                value.to_json(f"output/{self.stamp}_{key}.json", orient="records", force_ascii=True)
+
+        except Exception as e:
+            print(f"Ocurrió un error: {e}")
+            print("Asegúrate de tener las dependencias correctas instaladas (ej. Ghostscript para Camelot).")
+            print("También verifica que la contraseña sea correcta y el PDF no esté corrupto.")

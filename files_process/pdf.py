@@ -19,3 +19,14 @@ def read_pdf(filepath: str, password: str) -> list:
         print("Asegúrate de tener las dependencias correctas instaladas (ej. Ghostscript para Camelot).")
         print("También verifica que la contraseña sea correcta y el PDF no esté corrupto.")
     return []
+
+def check_pdf_access(filepath: str, password: str = None) -> bool:
+    try:
+        if(password):
+            file = camelot.read_pdf(filepath, pages='all', flavor="hybrid", password=password)
+        else:
+            file = camelot.read_pdf(filepath, pages='all', flavor="hybrid")
+        
+    except Exception as e:
+        return false
+    return True
