@@ -48,6 +48,34 @@ async def handle_error(message, file_name, error_message, log, debug_channel, cl
     await message.reply(f"{emoji} {error_message}")
 
 
+def get_params_from_message(message):
+    """
+    Extracts parameters from the message content.
+
+    Args:
+        message: Discord message
+
+    Returns:
+        dict: Dictionary with extracted parameters
+    """
+    params = {}
+    message_splitted = message.content.split(" ")
+
+    for message_part in message_splitted:
+        if "pass:" in (message_part or "").lower():
+            params['pdf_password'] = (message_part.lower().split("pass:")[1].strip())
+        elif "month:" in (message_part or "").lower():
+            mes = (message_part.lower().split("month:")[1].strip())
+            if mes.isdigit() and 1 <= int(mes) <= 12:
+                params['month'] = int(mes)
+        elif "year:" in (message_part or "").lower():
+            year = (message_part.lower().split("year:")[1].strip())
+            if year.isdigit() and 1900 <= int(year) <= 2100:
+                params['year'] = int(year)
+
+    return params
+
+
 async def handle_extract_message(message, logger, debug_channel, settings):
     """
     Handles messages with PDF attachments consistently.
@@ -78,9 +106,20 @@ async def handle_extract_message(message, logger, debug_channel, settings):
 
         await message.add_reaction(EMOJI_PROCESSING)
 
-        pdf_password = None
-        if "password:" in (message.content or "").lower():
-            pdf_password = (message.content.lower().split("password:")[1].strip())
+        task_params = get_params_from_message(message)
+        pdf_password = task_params.get('pdf_password', None)
+
+        if "month" not in task_params or "year" not in task_params:
+            await handle_error(
+                message,
+                attachment.filename,
+                "Please provide the month and year in the format 'mes: <month>' and 'año: <year>'",
+                logger,
+                debug_channel,
+                clear_processing=False,
+                error_category="warning"
+            )
+            continue
 
         try:
             os.makedirs(settings.dowload_files, exist_ok=True)
@@ -99,9 +138,10 @@ async def handle_extract_message(message, logger, debug_channel, settings):
                 )
                 continue
 
+            task_params['filepath'] = download_path
             etl = ETL(settings)
-            log_transactions = etl.run(constants.PROCESS_TRANSACTIONS_ETL, filepath=download_path, password=pdf_password)
-            log_resume = etl.run(constants.PROCESS_RESUME_ETL, filepath=download_path, password=pdf_password)
+            log_transactions = etl.run(constants.PROCESS_TRANSACTIONS_ETL, **task_params)
+            log_resume = etl.run(constants.PROCESS_RESUME_ETL, **task_params)
 
             logger.info(f"File {attachment.filename} processed successfully")
             await message.remove_reaction(EMOJI_PROCESSING, message.guild.me)
@@ -109,12 +149,12 @@ async def handle_extract_message(message, logger, debug_channel, settings):
             await message.reply(f"✅ File {attachment.filename} processed successfully.")
 
             transaction_log_messages = [f"{row['identifier']} {row['message']}" for _, row in log_transactions.iterrows() if row['identifier'] != 'file_processed']
-            combined_message = f"✅ Log transactions {attachment.filename}.\n" + "\n".join(transaction_log_messages)
+            transaction_log_reply = f"✅ Log transactions {attachment.filename}.\n" + "\n".join(transaction_log_messages)
+            await message.reply(transaction_log_reply)
 
             resume_log_messages = [f"{row['identifier']} {row['message']}" for _, row in log_resume.iterrows() if row['identifier'] != 'file_processed']
-            combined_message = f"✅ Log resume {attachment.filename}.\n" + "\n".join(resume_log_messages)
-
-            await message.reply(combined_message)
+            resume_log_reply = f"✅ Log resume {attachment.filename}.\n" + "\n".join(resume_log_messages)
+            await message.reply(resume_log_reply)
 
         except Exception as e:
             await handle_error(message, attachment.filename, str(e), logger, debug_channel)

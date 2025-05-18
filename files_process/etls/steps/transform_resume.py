@@ -13,8 +13,11 @@ def clean_data(data: DataFrame, log: DataFrame, logger, *args, **kwargs) -> Data
     - Valor
     - Descripcion
     - Valor1
+    - mes
     """
     try:
+        logger.info("Transformando el dataframe de resumen de movimientos")
+
         # Remove duplicates based on 'Resumen Movimientos'
         data.drop_duplicates(subset=["Resumen Movimientos"], inplace=True)
 
@@ -28,9 +31,13 @@ def clean_data(data: DataFrame, log: DataFrame, logger, *args, **kwargs) -> Data
         # Remove 'Nro' column
         data = data.drop(columns=["Nro"])
 
+        # Remove , from Valor and Valor1 columns
+        data["Valor"] = data["Valor"].str.replace(",", "", regex=False)
+        data["Valor1"] = data["Valor1"].str.replace(",", "", regex=False)
+
         # Convert 'Valor' and 'Valor1' columns to numeric
-        # data["Valor"] = pd.to_numeric(data["Valor"], errors="coerce")
-        # data["Valor1"] = pd.to_numeric(data["Valor1"], errors="coerce")
+        data["Valor"] = pd.to_numeric(data["Valor"], errors="coerce")
+        data["Valor1"] = pd.to_numeric(data["Valor1"], errors="coerce")
 
     except Exception as e:
         log = insert_row(log, ["error", f"Error al procesar {data}: {e}"])
@@ -48,10 +55,14 @@ def transform_data(data_frame: DataFrame, log: DataFrame, logger, *args, **kwarg
     try:
         new_rows = data_frame[['Descripcion', 'Valor1']].copy()
         new_rows.rename(columns={'Descripcion': 'Resumen Movimientos', 'Valor1': 'Valor'}, inplace=True)
-        new_rows['Nro'] = 1
 
         data_frame = data_frame.drop(columns=['Descripcion', 'Valor1'])
         data_frame = pd.concat([data_frame, new_rows], ignore_index=True)
+
+        # get month from kwargs and add it to the dataframe
+        month = kwargs.get("month")
+        year = kwargs.get("year")
+        data_frame["mes"] = f"{month}/{year}"
 
     except Exception as e:
         log = insert_row(log, ["error", f"Error al transformar {data_frame}: {e}"])

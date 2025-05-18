@@ -15,18 +15,19 @@ def main():
         # Configurar el logger
         logger = setup_logger()
 
-        etl = ETL(settings)
-        log1 = etl.run("process_transactions", password="1001773168")
-        log = etl.run("process_resume", password="1001773168")
-        print(log1)
-        print(log)
+        # etl = ETL(settings)
+        # log1 = etl.run("process_transactions", password="1001773168", month=4, year=2023)
+        # print(log1)
+        # log = etl.run("process_resume", password="1001773168", month=4, year=2023)
+        # print(log)
+
         # Iniciar el bot
-        # bot = DiscordBot(logger, settings)
-        # logger.info("Iniciando bot de Discord...")
-        # if bot.run():
-        #     logger.info("Bot iniciado correctamente")
-        # else:
-        #     logger.error("Error al iniciar el bot")
+        bot = DiscordBot(logger, settings)
+        logger.info("Iniciando bot de Discord...")
+        if bot.run():
+            logger.info("Bot iniciado correctamente")
+        else:
+            logger.error("Error al iniciar el bot")
 
     except Exception as ex:
         logger.error(f"Error inesperado: {str(ex)}")

@@ -12,17 +12,21 @@ def clean_data(dataframe: pd.DataFrame, log: pd.DataFrame, logger, *args, **kwar
 
     try:
         logger.info("Transformando el dataframe de transacciones")
+        # get month from kwargs and add it to the dataframe
+        month = kwargs.get("month")
+        year = kwargs.get("year")
+        dataframe["mes"] = f"{month}/{year}"
+
         # Remove duplicates
         dataframe.drop_duplicates(subset=["Movimiento"], inplace=True)
         # Fill empty strings with NaN
         dataframe.replace(r"^\s*$", pd.NA, regex=True, inplace=True)
         # Replace NaN values with 0 in numeric columns
-        numeric_columns = ["Cargos", "Abonos", "Saldo"]
+        numeric_columns = ["Movimiento", "Cargos", "Abonos", "Saldo"]
         for column in numeric_columns:
+            dataframe[column] = dataframe[column].str.replace(",", "", regex=False)
             dataframe[column] = dataframe[column].fillna(0)
-        # # Convert columns to numeric
-        # for column in numeric_columns:
-        #     dataframe[column] = pd.to_numeric(dataframe[column], errors="coerce")
+            dataframe[column] = pd.to_numeric(dataframe[column], errors="coerce")
     except Exception as e:
         log = insert_row(log, ["error", f"Error al procesar {dataframe}: {e}"])
         logger.error(f"Error al procesar {dataframe}: {e}")
