@@ -8,36 +8,36 @@ def clean_data(data: DataFrame, log: DataFrame, logger, *args, **kwargs) -> Data
     """Transforms the dataset into the desired structure and filters.
 
     DataFrame columns:
-    - Resumen Movimientos
-    - Nro
-    - Valor
-    - Descripcion
-    - Valor1
+    - concept
+    - nro
+    - value
+    - concept1
+    - value1
     - mes
     """
     try:
         logger.info("Transformando el dataframe de resumen de movimientos")
 
-        # Remove duplicates based on 'Resumen Movimientos'
-        data.drop_duplicates(subset=["Resumen Movimientos"], inplace=True)
+        # Remove duplicates based on 'concept'
+        data.drop_duplicates(subset=["concept"], inplace=True)
 
         # Replace empty strings with NaN
         data.replace(r"^\s*$", pd.NA, regex=True, inplace=True)
 
-        # Replace NaN values with 0 in 'Valor' and 'Valor1' columns
-        data["Valor"] = data["Valor"].fillna(0)
-        data["Valor1"] = data["Valor1"].fillna(0)
+        # Replace NaN values with 0 in 'value' and 'value1' columns
+        data["value"] = data["value"].fillna(0)
+        data["value1"] = data["value1"].fillna(0)
 
         # Remove 'Nro' column
-        data = data.drop(columns=["Nro"])
+        data = data.drop(columns=["nro"])
 
-        # Remove , from Valor and Valor1 columns
-        data["Valor"] = data["Valor"].str.replace(",", "", regex=False)
-        data["Valor1"] = data["Valor1"].str.replace(",", "", regex=False)
+        # Remove , from value and value1 columns
+        data["value"] = data["value"].str.replace(",", "", regex=False)
+        data["value1"] = data["value1"].str.replace(",", "", regex=False)
 
-        # Convert 'Valor' and 'Valor1' columns to numeric
-        data["Valor"] = pd.to_numeric(data["Valor"], errors="coerce")
-        data["Valor1"] = pd.to_numeric(data["Valor1"], errors="coerce")
+        # Convert 'value' and 'value1' columns to numeric
+        data["value"] = pd.to_numeric(data["value"], errors="coerce")
+        data["value1"] = pd.to_numeric(data["value1"], errors="coerce")
 
     except Exception as e:
         log = insert_row(log, ["error", f"Error al procesar {data}: {e}"])
@@ -50,13 +50,13 @@ def clean_data(data: DataFrame, log: DataFrame, logger, *args, **kwargs) -> Data
 def transform_data(data_frame: DataFrame, log: DataFrame, logger, *args, **kwargs) -> DataFrame:
     """Transform Dataset and compact in columns.
 
-    DataFrame columns: Resumen Movimientos, Nro, Valor
+    DataFrame columns: concept, nro, value
     """
     try:
-        new_rows = data_frame[['Descripcion', 'Valor1']].copy()
-        new_rows.rename(columns={'Descripcion': 'Resumen Movimientos', 'Valor1': 'Valor'}, inplace=True)
+        new_rows = data_frame[['concept1', 'value1']].copy()
+        new_rows.rename(columns={'concept1': 'concept', 'value1': 'value'}, inplace=True)
 
-        data_frame = data_frame.drop(columns=['Descripcion', 'Valor1'])
+        data_frame = data_frame.drop(columns=['concept1', 'value1'])
         data_frame = pd.concat([data_frame, new_rows], ignore_index=True)
 
         # get month from kwargs and add it to the dataframe

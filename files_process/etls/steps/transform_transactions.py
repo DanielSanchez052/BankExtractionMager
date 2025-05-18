@@ -7,7 +7,7 @@ def clean_data(dataframe: pd.DataFrame, log: pd.DataFrame, logger, *args, **kwar
     """Cleans and transforms the dataset into the desired structure and filters
 
         DataFrame columns:
-          Movimiento, Fecha, Operacion, Fecha, Valor, Concepto, Cargos, Abonos, Saldo
+          movement, operation_date, value_date, concept, charges, credits, balance
     """
 
     try:
@@ -15,14 +15,14 @@ def clean_data(dataframe: pd.DataFrame, log: pd.DataFrame, logger, *args, **kwar
         # get month from kwargs and add it to the dataframe
         month = kwargs.get("month")
         year = kwargs.get("year")
-        dataframe["mes"] = f"{month}/{year}"
+        dataframe["month"] = f"{month}/{year}"
 
         # Remove duplicates
-        dataframe.drop_duplicates(subset=["Movimiento"], inplace=True)
+        dataframe.drop_duplicates(subset=["movement"], inplace=True)
         # Fill empty strings with NaN
         dataframe.replace(r"^\s*$", pd.NA, regex=True, inplace=True)
         # Replace NaN values with 0 in numeric columns
-        numeric_columns = ["Movimiento", "Cargos", "Abonos", "Saldo"]
+        numeric_columns = ["movement", "charges", "credits", "balance"]
         for column in numeric_columns:
             dataframe[column] = dataframe[column].str.replace(",", "", regex=False)
             dataframe[column] = dataframe[column].fillna(0)
