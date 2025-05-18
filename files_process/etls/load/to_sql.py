@@ -4,8 +4,8 @@ from sqlalchemy import create_engine
 from files_process.etls.utils import insert_row
 
 
-def save_to_sqlite(dataframe: DataFrame, log: DataFrame, logger, *args, **kwargs):
-    """Load data into a SQLite database."""
+def save_to_sql(dataframe: DataFrame, log: DataFrame, logger, *args, **kwargs):
+    """Load data into a Mysql database."""
 
     if "destination" not in kwargs:
         raise ValueError("The 'destination' argument is required.")
@@ -22,7 +22,7 @@ def save_to_sqlite(dataframe: DataFrame, log: DataFrame, logger, *args, **kwargs
         dataframe.to_sql(destination, engine, if_exists=operation)
         insert_row(log, ["success", f"Saved {len(dataframe)} rows to {destination}"])
     except Exception as e:
-        error_message = f"Error saving to SQLite: {e}"
+        error_message = f"Error saving to SQL: {e}"
         logger.error(error_message)
         log = log.append({"identifier": "error", "message": error_message}, ignore_index=True)
 
