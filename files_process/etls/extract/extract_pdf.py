@@ -17,8 +17,7 @@ def extract(log: pd.DataFrame, logger, *args, **kwargs) -> tuple:
 
     if "filepath" in settings and os.path.isfile(settings["filepath"]):
         files_to_process.append(settings["filepath"])
-
-    if "process_dir" in settings:
+    elif "process_dir" in settings:
         process_dir = settings["process_dir"]
         if not os.path.exists(process_dir):
             os.mkdir(process_dir)
@@ -38,6 +37,7 @@ def extract(log: pd.DataFrame, logger, *args, **kwargs) -> tuple:
             tables = extractor.extract_tables(file, settings.get("password"), flavor="network")
             filtered = [table for table in tables if table is not None and len(table.columns) == len(settings["column_mapping"])]
             logger.info(f"Processed file {file}")
+            insert_row(log, ["file_processed", file])
             extracted_data.extend(filtered)
         except Exception as e:
             logger.warning(f"Error extracting tables from file {file}: {str(e)}")

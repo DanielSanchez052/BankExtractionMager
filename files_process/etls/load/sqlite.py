@@ -1,6 +1,8 @@
 from pandas import DataFrame
 from sqlalchemy import create_engine
 
+from files_process.etls.utils import insert_row
+
 
 def save_to_sqlite(dataframe: DataFrame, log: DataFrame, logger, *args, **kwargs):
     """Load data into a SQLite database."""
@@ -14,11 +16,11 @@ def save_to_sqlite(dataframe: DataFrame, log: DataFrame, logger, *args, **kwargs
     connection_string = kwargs["connection_string"]
     operation = kwargs.get("operation", "replace")
 
-    engine = create_engine(connection_string)
-
     try:
+        engine = create_engine(connection_string)
         logger.info(f"Saving {len(dataframe)} rows to {destination}")
         dataframe.to_sql(destination, engine, if_exists=operation)
+        insert_row(log, ["success", f"Saved {len(dataframe)} rows to {destination}"])
     except Exception as e:
         error_message = f"Error saving to SQLite: {e}"
         logger.error(error_message)

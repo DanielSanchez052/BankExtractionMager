@@ -37,25 +37,25 @@ class LoggingFormatter(logging.Formatter):
 def setup_logger(name="discord_bot", level=logging.INFO):
     """
     Configura y retorna un logger con los handlers necesarios
-    
+
     Args:
         name: Nombre del logger
         level: Nivel de logging (default: INFO)
-    
+
     Returns:
         logging.Logger: Logger configurado
     """
     # Crear el logger
     logger = logging.getLogger(name)
     logger.setLevel(level)
-    
+
     # Crear directorio de logs si no existe
     os.makedirs("logs", exist_ok=True)
-    
+
     # Console handler
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(LoggingFormatter())
-    
+
     # File handler
     file_handler = logging.FileHandler(
         filename=f"logs/{datetime.now().strftime('%Y-%m-%d')}-discord.log",
@@ -68,12 +68,12 @@ def setup_logger(name="discord_bot", level=logging.INFO):
         style="{"
     )
     file_handler.setFormatter(file_handler_formatter)
-    
+
     # Limpiar handlers existentes
     logger.handlers.clear()
-    
+
     # Agregar los handlers
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)
-    
+
     return logger

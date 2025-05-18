@@ -1,119 +1,120 @@
 import os
-from files_process.extractors import PDFExtractor  
+
+import pandas as pd
+import constants
+from files_process.etls.etl import ETL
+from files_process.extractors import PDFExtractor
 
 # Emojis para reacciones
 EMOJI_PROCESSING = "⏳"  # Reloj de arena
-EMOJI_SUCCESS = "✅"      # Check verde
-EMOJI_ERROR = "❌"        # X roja
+EMOJI_SUCCESS = "✅"
+EMOJI_ERROR = "❌"
 EMOJI_WARNING = "⚠️"      # Advertencia
 EMOJI_PDF = "📄"          # Documento
 
-async def handle_error(message, filename, error_msg, logger, debug_channel, remove_processing=True, error_type="error"):
-    """
-    Maneja los mensajes de error de manera consistente
-    
-    Args:
-        message: El mensaje de Discord
-        filename: Nombre del archivo que causó el error
-        error_msg: Mensaje de error a mostrar
-        logger: Instancia del logger
-        debug_channel: Canal de debug
-        remove_processing: Si se debe remover la reacción de procesamiento
-        error_type: Tipo de error (error, warning, access)
-    """
-    if debug_channel:
-        await debug_channel.send(f"{'❌' if error_type == 'error' else '⚠️' if error_type == 'warning' else '🔒'} {error_msg}")
-    
-    # Registrar en el logger
-    if error_type == 'error':
-        logger.error(f"Error al procesar {filename}: {error_msg}")
-    elif error_type == 'warning':
-        logger.warning(f"Advertencia al procesar {filename}: {error_msg}")
-    else:
-        logger.warning(f"Error de acceso en {filename}: {error_msg}")
-    
-    # Cambiar reacción
-    if remove_processing:
-        await message.remove_reaction(EMOJI_PROCESSING, message.guild.me)
-    await message.add_reaction(EMOJI_ERROR if error_type == 'error' else EMOJI_WARNING)
-    
-    # Responder al mensaje
-    await message.reply(f"{'❌' if error_type == 'error' else '⚠️' if error_type == 'warning' else '🔒'} {error_msg}")
 
-async def handle_extract_message(message, logger, debug_channel):
-    logger.info(message.channel.name)
-    
-    filename=None
-    password=None
-    
-    # Verificar si el mensaje tiene archivos adjuntos
+async def handle_error(message, file_name, error_message, log, debug_channel, clear_processing=True, error_category="error"):
+    """
+    Handles error messages consistently
+
+    Args:
+        message: Discord message
+        file_name: Name of the file that caused the error
+        error_message: Error message to display
+        log: Logger instance
+        debug_channel: Debugging channel
+        clear_processing: Whether to remove the processing reaction
+        error_category: Type of error (error, warning, access)
+    """
+    emoji = "❌" if error_category == "error" else "⚠️" if error_category == "warning" else "🔒"
+
+    if debug_channel:
+        await debug_channel.send(f"{emoji} {error_message}")
+
+    # Log the error
+    if error_category == "error":
+        log.error(f"Error processing {file_name}: {error_message}")
+    elif error_category == "warning":
+        log.warning(f"Warning processing {file_name}: {error_message}")
+    else:
+        log.warning(f"Access error in {file_name}: {error_message}")
+
+    # Change reaction
+    if clear_processing:
+        await message.remove_reaction(EMOJI_PROCESSING, message.guild.me)
+    await message.add_reaction(EMOJI_ERROR if error_category == "error" else EMOJI_WARNING)
+
+    # Reply to the message
+    await message.reply(f"{emoji} {error_message}")
+
+
+async def handle_extract_message(message, logger, debug_channel, settings):
+    """
+    Handles messages with PDF attachments consistently.
+
+    Args:
+        message: Discord message
+        logger: Logger instance
+        debug_channel: Debugging channel
+        settings: Application settings
+    """
+    logger.info(f"Processing message from channel: {message.channel.name}")
+
     if not message.attachments:
         return
-        
-    # Procesar cada archivo adjunto
+
     for attachment in message.attachments:
-        # Verificar si es un PDF
         if not attachment.filename.lower().endswith('.pdf'):
             await handle_error(
-                message, 
-                attachment.filename, 
-                f"El archivo {attachment.filename} no es un PDF. Por favor, sube solo archivos PDF.",
-                logger, 
+                message,
+                attachment.filename,
+                f"The file {attachment.filename} is not a PDF. Please upload only PDF files.",
+                logger,
                 debug_channel,
-                remove_processing=False,
-                error_type="warning"
+                clear_processing=False,
+                error_category="warning"
             )
             continue
-        
-        # Agregar reacción de procesamient
+
         await message.add_reaction(EMOJI_PROCESSING)
-        
-        if message.content and "password:" in message.content.lower():
-            password = message.content.lower().split("password:")[1].strip()
-        
-        # Notificar en el canal de debug
-        if debug_channel:
-            await debug_channel.send(
-                f"📄 Nuevo archivo PDF detectado:\n"
-                f"Archivo: {attachment.filename}\n"
-                f"URL: {attachment.url}\n"
-                f"Mensaje: {message.content if message.content else 'Sin mensaje'}\n"
-                f"Usuario: {message.author.name}\n"
-                f"Contraseña: {'*****' * (len(password)-2) + password[-2:] if password else 'No especificada'}"
-            )
-            
-        # Registrar en el logger
-        logger.info(f"Nuevo archivo PDF detectado: {attachment.filename}")
-        
+
+        pdf_password = None
+        if "password:" in (message.content or "").lower():
+            pdf_password = (message.content.lower().split("password:")[1].strip())
+
         try:
-            # Crear directorio si no existe
-            os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
-            # Descargar el archivo\
-            filename = f'{DOWNLOAD_FOLDER}/{attachment.filename}'
-            await attachment.save(filename)
-            
-            if(not PDFExtractor(logger).check_pdf_access(filename, password)):
+            os.makedirs(settings.dowload_files, exist_ok=True)
+            download_path = os.path.join(settings.dowload_files, attachment.filename)
+            await attachment.save(download_path)
+
+            pdf_extractor = PDFExtractor(logger)
+            if not pdf_extractor.check_pdf_access(download_path, pdf_password):
                 await handle_error(
                     message,
                     attachment.filename,
-                    f"No se pudo acceder al archivo {attachment.filename}. Por favor verifica que la contraseña sea correcta.",
+                    f"Could not access the file {attachment.filename}. Please check if the password is correct.",
                     logger,
                     debug_channel,
-                    error_type="access"
+                    error_category="access"
                 )
                 continue
-            
-            # Notificar éxito
-            if debug_channel:
-                await debug_channel.send(f"✅ Archivo {attachment.filename} guardado correctamente")
-            
-            # Registrar éxito en el logger
-            logger.info(f"Archivo {attachment.filename} guardado correctamente")
-            # Cambiar reacción a éxito
+
+            etl = ETL(settings)
+            log_transactions = etl.run(constants.PROCESS_TRANSACTIONS_ETL, filepath=download_path, password=pdf_password)
+            log_resume = etl.run(constants.PROCESS_RESUME_ETL, filepath=download_path, password=pdf_password)
+
+            logger.info(f"File {attachment.filename} processed successfully")
             await message.remove_reaction(EMOJI_PROCESSING, message.guild.me)
             await message.add_reaction(EMOJI_SUCCESS)
-            # Responder al mensaje
-            await message.reply(f"✅ Archivo {attachment.filename} procesado correctamente.")
-            
+            await message.reply(f"✅ File {attachment.filename} processed successfully.")
+
+            transaction_log_messages = [f"{row['identifier']} {row['message']}" for _, row in log_transactions.iterrows() if row['identifier'] != 'file_processed']
+            combined_message = f"✅ Log transactions {attachment.filename}.\n" + "\n".join(transaction_log_messages)
+
+            resume_log_messages = [f"{row['identifier']} {row['message']}" for _, row in log_resume.iterrows() if row['identifier'] != 'file_processed']
+            combined_message = f"✅ Log resume {attachment.filename}.\n" + "\n".join(resume_log_messages)
+
+            await message.reply(combined_message)
+
         except Exception as e:
             await handle_error(message, attachment.filename, str(e), logger, debug_channel)

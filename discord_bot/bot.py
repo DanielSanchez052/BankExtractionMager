@@ -1,7 +1,8 @@
 import discord
 import os
 from discord.ext import commands
-from . import manage_extact_channel 
+from . import manage_extact_channel
+
 
 class DiscordBot(commands.Bot):
     def __init__(self, logger, settings):
@@ -10,7 +11,7 @@ class DiscordBot(commands.Bot):
         # Configuración de intents
         intents = discord.Intents.default()
         intents.message_content = True
-        
+
         # Inicializar el bot
         super().__init__(command_prefix='!', intents=intents)
         self.debug_channel = None
@@ -35,11 +36,11 @@ class DiscordBot(commands.Bot):
         async def on_ready():
             self.logger.info(f'Bot conectado como {self.user.name}')
             self.logger.info('------')
-            
+
             # Enviar mensaje al canal debug
             debug_channel = await self._get_debug_channel()
             if debug_channel:
-                await debug_channel.send(f"🟢 Bot iniciado como {self.user.name}\nEventos registrados:\n- on_ready\n- on_command_error")
+                await debug_channel.send(f"🟢Bot iniciado como {self.user.name}\nEventos registrados:\n- on_ready\n- on_command_error")
 
         @self.event
         async def on_command_error(ctx, error):
@@ -47,27 +48,27 @@ class DiscordBot(commands.Bot):
                 await ctx.send("No tienes permisos para usar este comando.")
             elif isinstance(error, commands.MissingRequiredArgument):
                 await ctx.send("Falta un argumento requerido para este comando.")
-            
+
             # Enviar error al canal debug
             debug_channel = await self._get_debug_channel()
             if debug_channel:
                 await debug_channel.send(f"❌ Error en comando: {ctx.command}\nError: {str(error)}")
-            
+
             # Registrar el error en el logger
             self.logger.error(f"Error en comando {ctx.command}: {str(error)}")
 
         @self.event
         async def on_message(message):
             debug_channel = await self._get_debug_channel()
-            
+
             # Ignorar mensajes del bot
             if message.author == self.user:
                 return
-            
+
             # Verificar si el mensaje está en el canal process-extract
             if message.channel.name == "process-extract":
-                await manage_extact_channel.handle_extract_message(message, self.logger, debug_channel)
-            
+                await manage_extact_channel.handle_extract_message(message, self.logger, debug_channel, self.settings)
+
             # Procesar comandos después de verificar el mensaje
 
             await self.process_commands(message)
@@ -108,8 +109,6 @@ class DiscordBot(commands.Bot):
                 await debug_channel.send(f"📝 Comandos registrados:\n{commands_list}")
                 self.logger.info("Comandos registrados y listos para usar")
 
-
-            
         except Exception as ex:
             self.logger.error("An error has ocurred")
             self.logger.error(ex)
@@ -120,7 +119,7 @@ class DiscordBot(commands.Bot):
         if TOKEN is None:
             self.logger.error("No se encontró el token de Discord. Asegúrate de tener un archivo .env con DISCORD_TOKEN")
             return False
-        
+
         self.logger.info("Iniciando bot de Discord...")
         super().run(TOKEN)
-        return True 
+        return True

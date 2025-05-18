@@ -6,7 +6,7 @@
       "script": "files_process/etls/extract/extract_pdf.py",
       "method": "extract",
       "args": {
-        "process_dir": "files_process/etls/to_process",
+        "process_dir": "files_process/to_process",
         "column_mapping": [
           "Movimiento",
           "Fecha Operacion",
@@ -20,9 +20,9 @@
     },
     "steps": [
       {
-        "name": "step_1",
-        "script": "files_process/etls/steps/transform.py",
-        "method": "step_1",
+        "name": "clean",
+        "script": "files_process/etls/steps/transform_transactions.py",
+        "method": "clean_data",
         "args": {},
         "type": "Transform"
       }
@@ -43,7 +43,7 @@
       "script": "files_process/etls/extract/extract_pdf.py",
       "method": "extract",
       "args": {
-        "process_dir": "files_process/etls/to_process",
+        "process_dir": "files_process/to_process",
         "column_mapping": [
           "Resumen Movimientos",
           "Nro",
@@ -55,9 +55,16 @@
     },
     "steps": [
       {
-        "name": "step_1",
-        "script": "files_process/etls/steps/transform.py",
-        "method": "step_1",
+        "name": "clean",
+        "script": "files_process/etls/steps/transform_resume.py",
+        "method": "clean_data",
+        "args": {},
+        "type": "Transform"
+      },
+      {
+        "name": "compact",
+        "script": "files_process/etls/steps/transform_resume.py",
+        "method": "transform_data",
         "args": {},
         "type": "Transform"
       }
@@ -75,7 +82,7 @@
       "script": "files_process/etls/steps/post_load.py",
       "method": "post_load",
       "args": {
-        "processed_dir": "files_process/etls/processed"
+        "processed_dir": "files_process/processed"
       },
       "type": "Step"
     }
