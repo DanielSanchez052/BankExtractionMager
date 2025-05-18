@@ -9,20 +9,20 @@ class PDFExtractor:
     def __init__(self, logger=None):
         """
         Inicializa el extractor de PDFs
-        
+
         Args:
             logger: Logger opcional para registrar el proceso
         """
         self.logger = logger or setup_logger("pdf_extractor")
-        
+
     def check_pdf_access(self, file_path: str, password: Optional[str] = None) -> bool:
         """
         Verifica si se puede acceder al PDF
-        
+
         Args:
             file_path: Ruta al archivo PDF
             password: Contraseña opcional del PDF
-            
+
         Returns:
             bool: True si se puede acceder al PDF, False en caso contrario
         """

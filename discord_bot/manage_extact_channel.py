@@ -76,7 +76,7 @@ def get_params_from_message(message):
     return params
 
 
-async def handle_extract_message(message, logger, debug_channel, settings):
+async def handle_extract_message(message, logger, debug_channel, log_channel, settings):
     """
     Handles messages with PDF attachments consistently.
 
@@ -146,15 +146,21 @@ async def handle_extract_message(message, logger, debug_channel, settings):
             logger.info(f"File {attachment.filename} processed successfully")
             await message.remove_reaction(EMOJI_PROCESSING, message.guild.me)
             await message.add_reaction(EMOJI_SUCCESS)
-            await message.reply(f"✅ File {attachment.filename} processed successfully.")
+            await message.reply(f"✅ File {attachment.filename} processed successfully. month: {task_params['month']} year: {task_params['year']}")
+            await log_channel.send(f"✅ File {attachment.filename} processed successfully.")
 
             transaction_log_messages = [f"{row['identifier']} {row['message']}" for _, row in log_transactions.iterrows() if row['identifier'] != 'file_processed']
             transaction_log_reply = f"✅ Log transactions {attachment.filename}.\n" + "\n".join(transaction_log_messages)
-            await message.reply(transaction_log_reply)
+            await log_channel.send(transaction_log_reply)
 
             resume_log_messages = [f"{row['identifier']} {row['message']}" for _, row in log_resume.iterrows() if row['identifier'] != 'file_processed']
             resume_log_reply = f"✅ Log resume {attachment.filename}.\n" + "\n".join(resume_log_messages)
-            await message.reply(resume_log_reply)
+            await log_channel.send(resume_log_reply)
+            await log_channel.send("#" * 15)
 
         except Exception as e:
             await handle_error(message, attachment.filename, str(e), logger, debug_channel)
+        finally:
+            await message.delete()
+            if os.path.exists(download_path):
+                os.remove(download_path)

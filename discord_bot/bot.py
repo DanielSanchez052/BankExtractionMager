@@ -15,6 +15,7 @@ class DiscordBot(commands.Bot):
         # Inicializar el bot
         super().__init__(command_prefix='!', intents=intents)
         self.debug_channel = None
+        self.extract_log_channel = None
         self.db = None
 
         # Registrar eventos y comandos
@@ -30,6 +31,16 @@ class DiscordBot(commands.Bot):
                     self.debug_channel = channel
                     break
         return self.debug_channel
+
+    async def _get_extract_log_channel(self):
+        """Obtiene el canal de debug"""
+        if self.extract_log_channel is None and self.settings.extractLogChannelName:
+            for guild in self.guilds:
+                channel = discord.utils.get(guild.channels, name=self.settings.extractLogChannelName)
+                if channel:
+                    self.extract_log_channel = channel
+                    break
+        return self.extract_log_channel
 
     def _register_events(self):
         @self.event
@@ -60,14 +71,14 @@ class DiscordBot(commands.Bot):
         @self.event
         async def on_message(message):
             debug_channel = await self._get_debug_channel()
-
             # Ignorar mensajes del bot
             if message.author == self.user:
                 return
 
             # Verificar si el mensaje está en el canal process-extract
             if message.channel.name == "process-extract":
-                await manage_extact_channel.handle_extract_message(message, self.logger, debug_channel, self.settings)
+                log_channel = await self._get_extract_log_channel()
+                await manage_extact_channel.handle_extract_message(message, self.logger, debug_channel, log_channel, self.settings)
 
             # Procesar comandos después de verificar el mensaje
 

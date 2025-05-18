@@ -1,5 +1,6 @@
 {
   "dowload_files": "files_process/files",
   "debugChannelName": "debug",
+  "extractLogChannelName": "extract-logs",
   "tasks_file": "files_process/etls/tasks.json"
 }
