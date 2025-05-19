@@ -8,13 +8,13 @@
       "args": {
         "process_dir": "files_process/to_process",
         "column_mapping": [
-          "Movimiento",
-          "Fecha Operacion",
-          "Fecha Valor",
-          "Concepto",
-          "Cargos",
-          "Abonos",
-          "Saldo"
+          "movement",
+          "operation_date",
+          "value_date",
+          "concept",
+          "charges",
+          "credits",
+          "balance"
         ]
       }
     },
@@ -25,16 +25,44 @@
         "method": "clean_data",
         "args": {},
         "type": "Transform"
+      },
+      {
+        "name": "save_preload",
+        "script": "files_process/etls/load/to_sql.py",
+        "method": "save_to_sql",
+        "args": {
+          "destination": "preload_transactions",
+          "connection_string": "",
+          "operation": "replace"
+        },
+        "type": "Load"
+      },
+      {
+        "name": "validate_db",
+        "script": "files_process/etls/steps/execute_sp.py",
+        "method": "execute_store_procedure",
+        "args": {
+          "connection_string": "",
+          "stored_procedure": "validate_transactions",
+          "procedure_params": [],
+          "validate_error": true
+        },
+        "type": "Step"
+      },
+      {
+        "name": "bulk_data",
+        "script": "files_process/etls/steps/execute_sp.py",
+        "method": "execute_store_procedure",
+        "args": {
+          "connection_string": "",
+          "stored_procedure": "save_transactions",
+          "procedure_params": [],
+          "validate_error": true
+        },
+        "type": "Step"
       }
     ],
-    "load_provider": {
-      "script": "files_process/etls/load/sqlite.py",
-      "method": "save_to_sqlite",
-      "args": {
-        "destination": "transactions",
-        "connection_string": "sqlite:///my_lite_store.db"
-      }
-    }
+    "load_provider": {}
   },
   {
     "name": "get resume from pdf and save to sqlite",
@@ -45,11 +73,11 @@
       "args": {
         "process_dir": "files_process/to_process",
         "column_mapping": [
-          "Resumen Movimientos",
-          "Nro",
-          "Valor",
-          "Descripcion",
-          "Valor1"
+          "concept",
+          "nro",
+          "value",
+          "concept1",
+          "value1"
         ]
       }
     },
@@ -67,16 +95,44 @@
         "method": "transform_data",
         "args": {},
         "type": "Transform"
+      },
+      {
+        "name": "save_preload",
+        "script": "files_process/etls/load/to_sql.py",
+        "method": "save_to_sql",
+        "args": {
+          "destination": "preload_transaction_resume",
+          "connection_string": "",
+          "operation": "replace"
+        },
+        "type": "Load"
+      },
+      {
+        "name": "validate_db",
+        "script": "files_process/etls/steps/execute_sp.py",
+        "method": "execute_store_procedure",
+        "args": {
+          "connection_string": "",
+          "stored_procedure": "validate_resume",
+          "procedure_params": [],
+          "validate_error": true
+        },
+        "type": "Step"
+      },
+      {
+        "name": "bulk_data",
+        "script": "files_process/etls/steps/execute_sp.py",
+        "method": "execute_store_procedure",
+        "args": {
+          "connection_string": "",
+          "stored_procedure": "save_resume",
+          "procedure_params": [],
+          "validate_error": true
+        },
+        "type": "Step"
       }
     ],
-    "load_provider": {
-      "script": "files_process/etls/load/sqlite.py",
-      "method": "save_to_sqlite",
-      "args": {
-        "destination": "resume",
-        "connection_string": "sqlite:///my_lite_store.db"
-      }
-    },
+    "load_provider": {},
     "post_load_provider": {
       "name": "post_load",
       "script": "files_process/etls/steps/post_load.py",
