@@ -41,18 +41,40 @@ class DiscordBot(commands.Bot):
                     break
         return self.extract_log_channel
 
+    def _get_bot_info(self):
+        return f'''
+**Información del Bot**
+=======================
+**Nombre:** {self.user.name}
+**ID:** {self.user.id}
+**Versión:** {discord.__version__}
+
+**Comandos Disponibles**
+------------------------
+{self._format_commands()}
+
+**Eventos Disponibles**
+----------------------
+{self._format_events()}
+'''
+
+    def _format_commands(self):
+        commands_list = [f"- {cmd.name}: {cmd.help or 'Sin descripción'}" for cmd in self.commands]
+        return "\n".join(commands_list)
+
+    def _format_events(self):
+        event_list = ["- on_ready", "- on_command_error"]
+        return "\n".join(event_list)
+
     def _register_events(self):
         @self.event
         async def on_ready():
             self.logger.info(f'Bot conectado como {self.user.name}')
-
-            # Enviar mensaje al canal debug
+            # Enviar mensaje al canal de debug
             debug_channel = await self._get_debug_channel()
             if debug_channel:
-                await debug_channel.send("📝 Eventos registrados:\n- on_ready\n- on_command_error")
-                commands_list = "\n".join([f"- {cmd.name}: {cmd.help or 'Sin descripción'}" for cmd in self.commands])
-                await debug_channel.send(f"📝 Comandos registrados:\n{commands_list}")
-                self.logger.info("Comandos registrados y listos para usar")
+                await debug_channel.send(f"✅ Bot conectado como {self.user.name}")
+                await debug_channel.send(self._get_bot_info())
 
         @self.event
         async def on_command_error(ctx, error):
@@ -89,13 +111,7 @@ class DiscordBot(commands.Bot):
         @self.command(name='info')
         async def info(ctx):
             """Muestra información sobre el servidor"""
-            server = ctx.guild
-            await ctx.send(f'''
-            **Información del Servidor**
-            Nombre: {server.name}
-            Miembros: {server.member_count}
-            Creado el: {server.created_at.strftime('%d/%m/%Y')}
-            ''')
+            await ctx.send(self._get_bot_info())
             self.logger.info(f"Comando 'info' ejecutado por {ctx.author.name}")
 
         @self.command(name='limpiar')
