@@ -16,7 +16,6 @@ class DiscordBot(commands.Bot):
         super().__init__(command_prefix='!', intents=intents)
         self.debug_channel = None
         self.extract_log_channel = None
-        self.db = None
 
         # Registrar eventos y comandos
         self._register_events()
@@ -46,12 +45,14 @@ class DiscordBot(commands.Bot):
         @self.event
         async def on_ready():
             self.logger.info(f'Bot conectado como {self.user.name}')
-            self.logger.info('------')
 
             # Enviar mensaje al canal debug
             debug_channel = await self._get_debug_channel()
             if debug_channel:
-                await debug_channel.send(f"🟢Bot iniciado como {self.user.name}\nEventos registrados:\n- on_ready\n- on_command_error")
+                await debug_channel.send("📝 Eventos registrados:\n- on_ready\n- on_command_error")
+                commands_list = "\n".join([f"- {cmd.name}: {cmd.help or 'Sin descripción'}" for cmd in self.commands])
+                await debug_channel.send(f"📝 Comandos registrados:\n{commands_list}")
+                self.logger.info("Comandos registrados y listos para usar")
 
         @self.event
         async def on_command_error(ctx, error):
@@ -85,12 +86,6 @@ class DiscordBot(commands.Bot):
             await self.process_commands(message)
 
     def _register_commands(self):
-        @self.command(name='hola')
-        async def saludar(ctx):
-            """Comando simple que responde con un saludo"""
-            await ctx.send(f'¡Hola {ctx.author.name}!')
-            self.logger.info(f"Comando 'hola' ejecutado por {ctx.author.name}")
-
         @self.command(name='info')
         async def info(ctx):
             """Muestra información sobre el servidor"""
@@ -110,19 +105,6 @@ class DiscordBot(commands.Bot):
             await ctx.channel.purge(limit=cantidad + 1)
             await ctx.send(f'Se han eliminado {cantidad} mensajes.', delete_after=5)
             self.logger.info(f"Comando 'limpiar' ejecutado por {ctx.author.name} - {cantidad} mensajes eliminados")
-
-    async def setup_hook(self):
-        """Hook que se ejecuta cuando el bot está listo"""
-        try:
-            debug_channel = await self._get_debug_channel()
-            if debug_channel:
-                commands_list = "\n".join([f"- {cmd.name}: {cmd.help or 'Sin descripción'}" for cmd in self.commands])
-                await debug_channel.send(f"📝 Comandos registrados:\n{commands_list}")
-                self.logger.info("Comandos registrados y listos para usar")
-
-        except Exception as ex:
-            self.logger.error("An error has ocurred")
-            self.logger.error(ex)
 
     def run(self):
         """Inicia el bot"""

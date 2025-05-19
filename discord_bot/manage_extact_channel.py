@@ -11,6 +11,7 @@ EMOJI_SUCCESS = "✅"
 EMOJI_ERROR = "❌"
 EMOJI_WARNING = "⚠️"      # Advertencia
 EMOJI_PDF = "📄"          # Documento
+EMOJI_ACCESS = "🔒"      # Acceso
 
 
 async def handle_error(message, file_name, error_message, log, debug_channel, clear_processing=True, error_category="error"):
@@ -26,7 +27,7 @@ async def handle_error(message, file_name, error_message, log, debug_channel, cl
         clear_processing: Whether to remove the processing reaction
         error_category: Type of error (error, warning, access)
     """
-    emoji = "❌" if error_category == "error" else "⚠️" if error_category == "warning" else "🔒"
+    emoji = get_identifier_icon(error_category)
 
     if debug_channel:
         await debug_channel.send(f"{emoji} {error_message}")
@@ -46,6 +47,30 @@ async def handle_error(message, file_name, error_message, log, debug_channel, cl
 
     # Reply to the message
     await message.reply(f"{emoji} {error_message}")
+
+
+def get_identifier_icon(identifier):
+    """
+    Returns the emoji associated with the identifier.
+
+    Args:
+        identifier: Identifier string
+
+    Returns:
+        str: Emoji string
+    """
+    if identifier == "file_processed":
+        return EMOJI_SUCCESS
+    elif identifier == "error":
+        return EMOJI_ERROR
+    elif identifier == "warning":
+        return EMOJI_WARNING
+    elif identifier == "access":
+        return EMOJI_ACCESS
+    elif identifier == "success":
+        return EMOJI_SUCCESS
+    else:
+        return EMOJI_PDF
 
 
 def get_params_from_message(message):
@@ -149,12 +174,12 @@ async def handle_extract_message(message, logger, debug_channel, log_channel, se
             await message.reply(f"✅ File {attachment.filename} processed successfully. month: {task_params['month']} year: {task_params['year']}")
             await log_channel.send(f"✅ File {attachment.filename} processed successfully.")
 
-            transaction_log_messages = [f"{row['identifier']} {row['message']}" for _, row in log_transactions.iterrows() if row['identifier'] != 'file_processed']
-            transaction_log_reply = f"✅ Log transactions {attachment.filename}.\n" + "\n".join(transaction_log_messages)
+            transaction_log_messages = [f"{get_identifier_icon(row['identifier'])} {row['message']}" for _, row in log_transactions.iterrows() if row['identifier'] != 'file_processed']
+            transaction_log_reply = f"{EMOJI_PDF} Log transactions {attachment.filename}.\n" + "\n".join(transaction_log_messages)
             await log_channel.send(transaction_log_reply)
 
-            resume_log_messages = [f"{row['identifier']} {row['message']}" for _, row in log_resume.iterrows() if row['identifier'] != 'file_processed']
-            resume_log_reply = f"✅ Log resume {attachment.filename}.\n" + "\n".join(resume_log_messages)
+            resume_log_messages = [f"{get_identifier_icon(row['identifier'])} {row['message']}" for _, row in log_resume.iterrows() if row['identifier'] != 'file_processed']
+            resume_log_reply = f"{EMOJI_PDF} Log resume {attachment.filename}.\n" + "\n".join(resume_log_messages)
             await log_channel.send(resume_log_reply)
             await log_channel.send("#" * 15)
 
