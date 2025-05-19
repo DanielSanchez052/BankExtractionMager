@@ -92,20 +92,26 @@ class ETL:
         Returns:
             Load: Proveedor de carga configurado
         """
-        load_provider_module = SourceFileLoader(
-            "load_provider",
-            task["load_provider"]["script"]
-        ).load_module()
+        if "load_provider" in task and 'script' in task["load_provider"]:
+            load_provider_module = SourceFileLoader(
+                "load_provider",
+                task["load_provider"]["script"]
+            ).load_module()
 
-        kwargs.update(task["load_provider"]["args"])
-        kwargs.update(self.settings.__dict__)
-        kwargs.update({"logger": self.logger})
+            load_provider_module = SourceFileLoader(
+                "load_provider",
+                task["load_provider"]["script"]
+            ).load_module()
 
-        return Load(
-            getattr(load_provider_module, task["load_provider"]["method"]),
-            *args,
-            **kwargs
-        )
+            kwargs.update(task["load_provider"]["args"])
+            kwargs.update(self.settings.__dict__)
+            kwargs.update({"logger": self.logger})
+
+            return Load(
+                getattr(load_provider_module, task["load_provider"]["method"]),
+                *args,
+                **kwargs
+            )
 
     def _create_post_load_provider(self, task: dict, *args, **kwargs) -> Step:
         """
