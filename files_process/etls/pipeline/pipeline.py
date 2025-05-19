@@ -98,7 +98,7 @@ class Pipeline:
                 self.log = step.run(self.log)
 
         if self.load:
-            self.log = self.load.run(self.data, self.log)
+            _, self.log = self.load.run(self.data, self.log)
 
         if self.post_load:
             self.log = self.post_load.run(self.log)

@@ -62,7 +62,7 @@ def transform_data(data_frame: DataFrame, log: DataFrame, logger, *args, **kwarg
         # get month from kwargs and add it to the dataframe
         month = kwargs.get("month")
         year = kwargs.get("year")
-        data_frame["mes"] = f"{month}/{year}"
+        data_frame["month"] = f"{month}/{year}"
 
     except Exception as e:
         log = insert_row(log, ["error", f"Error al transformar {data_frame}: {e}"])

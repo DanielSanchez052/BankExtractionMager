@@ -19,11 +19,11 @@ def save_to_sql(dataframe: DataFrame, log: DataFrame, logger, *args, **kwargs):
     try:
         engine = create_engine(connection_string)
         logger.info(f"Saving {len(dataframe)} rows to {destination}")
-        dataframe.to_sql(destination, engine, if_exists=operation)
+        dataframe.to_sql(destination, engine, if_exists=operation, index=False)
         insert_row(log, ["success", f"Saved {len(dataframe)} rows to {destination}"])
     except Exception as e:
         error_message = f"Error saving to SQL: {e}"
         logger.error(error_message)
         log = log.append({"identifier": "error", "message": error_message}, ignore_index=True)
 
-    return log
+    return None, log
