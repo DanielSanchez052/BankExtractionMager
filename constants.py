@@ -1,4 +1,4 @@
 
 
-PROCESS_TRANSACTIONS_ETL = "process_transactions"
-PROCESS_RESUME_ETL = "process_resume"
+PROCESS_BBVA_TRANSACTIONS_ETL = "process_transactions_bbva"
+PROCESS_NEQUI_TRANSACTIONS_ETL = "process_transactions_nequi"

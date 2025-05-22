@@ -8,4 +8,3 @@ class Settings():
         settings_file = open(self.settings_path)
         settings_data = json.load(settings_file)
         self.__dict__.update(settings_data)
-

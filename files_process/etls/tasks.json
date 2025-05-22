@@ -1,7 +1,7 @@
 [
   {
     "name": "get transactions from pdf and save to sqlite",
-    "key": "process_transactions",
+    "key": "process_transactions_bbva",
     "extract_provider": {
       "script": "files_process/etls/extract/extract_pdf.py",
       "method": "extract",
@@ -21,7 +21,7 @@
     "steps": [
       {
         "name": "clean",
-        "script": "files_process/etls/steps/transform_transactions.py",
+        "script": "files_process/etls/steps/transform_bbva_transactions.py",
         "method": "clean_data",
         "args": {},
         "type": "Transform"
@@ -62,7 +62,16 @@
         "type": "Step"
       }
     ],
-    "load_provider": {}
+    "load_provider": {},
+    "post_load_provider": {
+      "name": "post_load",
+      "script": "files_process/etls/steps/post_load.py",
+      "method": "post_load",
+      "args": {
+        "processed_dir": "files_process/processed"
+      },
+      "type": "Step"
+    }
   },
   {
     "name": "get resume from pdf and save to sqlite",
@@ -126,6 +135,85 @@
         "args": {
           "connection_string": "",
           "stored_procedure": "save_resume",
+          "procedure_params": [],
+          "validate_error": true
+        },
+        "type": "Step"
+      }
+    ],
+    "load_provider": {},
+    "post_load_provider": {
+      "name": "post_load",
+      "script": "files_process/etls/steps/post_load.py",
+      "method": "post_load",
+      "args": {
+        "processed_dir": "files_process/processed"
+      },
+      "type": "Step"
+    }
+  },
+  {
+    "name": "get transactions from pdf and save to sqlite",
+    "key": "process_transactions_nequi",
+    "extract_provider": {
+      "script": "files_process/etls/extract/extract_pdf.py",
+      "method": "extract",
+      "args": {
+        "process_dir": "files_process/to_process",
+        "column_mapping": [
+          "operation_date",
+          "description",
+          "value",
+          "balance"
+        ],
+        "flavor": "stream"
+      }
+    },
+    "steps": [
+      {
+        "name": "clean",
+        "script": "files_process/etls/steps/transform_nequi_transactions.py",
+        "method": "clean_data",
+        "args": {},
+        "type": "Transform"
+      },
+      {
+        "name": "transform",
+        "script": "files_process/etls/steps/transform_nequi_transactions.py",
+        "method": "transform_transactions",
+        "args": {},
+        "type": "Transform"
+      },
+      {
+        "name": "save_preload",
+        "script": "files_process/etls/load/to_sql.py",
+        "method": "save_to_sql",
+        "args": {
+          "destination": "preload_transactions",
+          "connection_string": "",
+          "operation": "replace"
+        },
+        "type": "Load"
+      },
+      {
+        "name": "validate_db",
+        "script": "files_process/etls/steps/execute_sp.py",
+        "method": "execute_store_procedure",
+        "args": {
+          "connection_string": "",
+          "stored_procedure": "validate_transactions",
+          "procedure_params": [],
+          "validate_error": true
+        },
+        "type": "Step"
+      },
+      {
+        "name": "bulk_data",
+        "script": "files_process/etls/steps/execute_sp.py",
+        "method": "execute_store_procedure",
+        "args": {
+          "connection_string": "",
+          "stored_procedure": "save_transactions",
           "procedure_params": [],
           "validate_error": true
         },

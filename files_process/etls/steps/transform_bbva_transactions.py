@@ -7,7 +7,7 @@ def clean_data(dataframe: pd.DataFrame, log: pd.DataFrame, logger, *args, **kwar
     """Cleans and transforms the dataset into the desired structure and filters
 
         DataFrame columns:
-          movement, operation_date, value_date, concept, charges, credits, balance
+          operation_date, concept, charges, credits, balance, month
     """
 
     try:
@@ -19,10 +19,14 @@ def clean_data(dataframe: pd.DataFrame, log: pd.DataFrame, logger, *args, **kwar
 
         # Remove duplicates
         dataframe.drop_duplicates(subset=["movement"], inplace=True)
+
+        dataframe["extra_data"] = dataframe["movement"]
+        dataframe.drop(columns=["movement", "value_date"], inplace=True)
+        dataframe["bank"] = "BBVA"
         # Fill empty strings with NaN
         dataframe.replace(r"^\s*$", pd.NA, regex=True, inplace=True)
         # Replace NaN values with 0 in numeric columns
-        numeric_columns = ["movement", "charges", "credits", "balance"]
+        numeric_columns = ["charges", "credits", "balance"]
         for column in numeric_columns:
             dataframe[column] = dataframe[column].str.replace(",", "", regex=False)
             dataframe[column] = dataframe[column].fillna(0)

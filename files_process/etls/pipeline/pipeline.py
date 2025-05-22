@@ -79,7 +79,7 @@ class Pipeline:
 
     def _extract(self, **kwargs) -> DataFrame:
         """Run the extraction Step."""
-        return self.extract.run(self.log, **kwargs)
+        return self.extract.run(self.log)
 
     def run(self, load=True, **kwargs) -> DataFrame:
         if isinstance(self.source, DataFrame):

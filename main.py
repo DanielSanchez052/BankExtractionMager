@@ -3,6 +3,7 @@ from discord_bot.bot import DiscordBot
 from files_process.etls.etl import ETL
 from logger import setup_logger
 from settings import Settings
+from files_process import FileProcessor
 
 
 load_dotenv()

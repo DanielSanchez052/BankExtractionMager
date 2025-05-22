@@ -1,9 +1,11 @@
 import os
 
-import pandas as pd
-import constants
-from files_process.etls.etl import ETL
+from ollama import chat
+from ollama import ChatResponse
+from pydantic import BaseModel
 from files_process.extractors import PDFExtractor
+from files_process import FileProcessor
+
 
 # Emojis para reacciones
 EMOJI_PROCESSING = "⏳"  # Reloj de arena
@@ -12,6 +14,45 @@ EMOJI_ERROR = "❌"
 EMOJI_WARNING = "⚠️"      # Advertencia
 EMOJI_PDF = "📄"          # Documento
 EMOJI_ACCESS = "🔒"      # Acceso
+
+
+class PDfInfo(BaseModel):
+    bank_name: str
+    month: int
+    year: int
+
+    def to_dict(self):
+        return self.__dict__
+
+
+def get_extract_info(text) -> PDfInfo:
+    """
+    Extracts information from a text that corresponds to a bank statement.
+
+    Args:
+        text (str): Text to extract information from
+
+    Returns:
+        PDfInfo: Extracted information
+    """
+    base_prompt = f"""
+     You are going to receive a text that corresponds to a bank statement. Extract the following information from it:
+
+     - {', '.join([f for f in PDfInfo.model_fields.keys()])}
+
+     text: {text}
+     """
+
+    messages = [
+        {
+            'role': 'user',
+            'content': base_prompt,
+        }
+    ]
+
+    response: ChatResponse = chat(model='gemma3:4b', messages=messages, format=PDfInfo.model_json_schema())
+    json_response = PDfInfo.model_validate_json(response.message.content)
+    return json_response
 
 
 async def handle_error(message, file_name, error_message, log, debug_channel, clear_processing=True, error_category="error"):
@@ -89,15 +130,9 @@ def get_params_from_message(message):
     for message_part in message_splitted:
         if "pass:" in (message_part or "").lower():
             params['pdf_password'] = (message_part.lower().split("pass:")[1].strip())
-        elif "month:" in (message_part or "").lower():
-            mes = (message_part.lower().split("month:")[1].strip())
-            if mes.isdigit() and 1 <= int(mes) <= 12:
-                params['month'] = int(mes)
-        elif "year:" in (message_part or "").lower():
-            year = (message_part.lower().split("year:")[1].strip())
-            if year.isdigit() and 1900 <= int(year) <= 2100:
-                params['year'] = int(year)
-
+        else:
+            param = message_part.split(":")
+            params[param[0].strip().lower()] = param[1].strip()
     return params
 
 
@@ -112,6 +147,7 @@ async def handle_extract_message(message, logger, debug_channel, log_channel, se
         settings: Application settings
     """
     logger.info(f"Processing message from channel: {message.channel.name}")
+    pdf_extractor = PDFExtractor(logger)
 
     if not message.attachments:
         return
@@ -134,24 +170,11 @@ async def handle_extract_message(message, logger, debug_channel, log_channel, se
         task_params = get_params_from_message(message)
         pdf_password = task_params.get('pdf_password', None)
 
-        if "month" not in task_params or "year" not in task_params:
-            await handle_error(
-                message,
-                attachment.filename,
-                "Please provide the month and year in the format 'mes: <month>' and 'año: <year>'",
-                logger,
-                debug_channel,
-                clear_processing=False,
-                error_category="warning"
-            )
-            continue
-
         try:
             os.makedirs(settings.dowload_files, exist_ok=True)
             download_path = os.path.join(settings.dowload_files, attachment.filename)
             await attachment.save(download_path)
 
-            pdf_extractor = PDFExtractor(logger)
             if not pdf_extractor.check_pdf_access(download_path, pdf_password):
                 await handle_error(
                     message,
@@ -164,9 +187,25 @@ async def handle_extract_message(message, logger, debug_channel, log_channel, se
                 continue
 
             task_params['filepath'] = download_path
-            etl = ETL(settings)
-            log_transactions = etl.run(constants.PROCESS_TRANSACTIONS_ETL, **task_params)
-            log_resume = etl.run(constants.PROCESS_RESUME_ETL, **task_params)
+
+            text = pdf_extractor.get_text(str(download_path), pdf_password)
+            info = get_extract_info(text).to_dict()
+
+            task_params.update({key: value for key, value in info.items() if key not in task_params})
+
+            if "month" not in task_params or "year" not in task_params:
+                await handle_error(
+                    message,
+                    attachment.filename,
+                    "Please provide the month and year in the format 'mes: <month>' and 'año: <year>'",
+                    logger,
+                    debug_channel,
+                    clear_processing=False,
+                    error_category="warning"
+                )
+                continue
+
+            log = FileProcessor(settings).process_file(**task_params)
 
             logger.info(f"File {attachment.filename} processed successfully")
             await message.remove_reaction(EMOJI_PROCESSING, message.guild.me)
@@ -174,16 +213,14 @@ async def handle_extract_message(message, logger, debug_channel, log_channel, se
             await message.reply(f"✅ File {attachment.filename} processed successfully. month: {task_params['month']} year: {task_params['year']}")
             await log_channel.send(f"✅ File {attachment.filename} processed successfully.")
 
-            transaction_log_messages = [f"{get_identifier_icon(row['identifier'])} {row['message']}" for _, row in log_transactions.iterrows() if row['identifier'] != 'file_processed']
-            transaction_log_reply = f"{EMOJI_PDF} Log transactions {attachment.filename}.\n" + "\n".join(transaction_log_messages)
+            transaction_log_messages = [f"{get_identifier_icon(row['identifier'])} {row['message']}" for _, row in log.iterrows() if row['identifier'] != 'file_processed']
+            transaction_log_reply = f"{EMOJI_PDF} Log {attachment.filename}.\n" + "\n".join(transaction_log_messages)
             await log_channel.send(transaction_log_reply)
 
-            resume_log_messages = [f"{get_identifier_icon(row['identifier'])} {row['message']}" for _, row in log_resume.iterrows() if row['identifier'] != 'file_processed']
-            resume_log_reply = f"{EMOJI_PDF} Log resume {attachment.filename}.\n" + "\n".join(resume_log_messages)
-            await log_channel.send(resume_log_reply)
-            await log_channel.send("#" * 15)
+            # await log_channel.send("#" * 15)
 
         except Exception as e:
+            print(e)
             await handle_error(message, attachment.filename, str(e), logger, debug_channel)
         finally:
             await message.delete()

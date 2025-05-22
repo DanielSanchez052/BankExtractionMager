@@ -1,8 +1,8 @@
-import os
 import camelot
 import pandas as pd
-from typing import List, Dict, Union, Optional
+from typing import List, Optional
 from logger import setup_logger
+import pypdf
 
 
 class PDFExtractor:
@@ -117,3 +117,16 @@ class PDFExtractor:
         df = df.fillna('')
 
         return df
+
+    def get_text(self, file: str, password: str = None, pages: int = -1, *args, **kwargs):
+        pdfFile = pypdf.PdfReader(file)
+        if pdfFile.is_encrypted:
+            pdfFile.decrypt(password)
+
+        if pages < 0:
+            num_pages = pdfFile.get_num_pages()
+        else:
+            num_pages = pages - 1
+
+        text = ''.join([pdfFile.get_page(page).extract_text() for page in range(num_pages)])
+        return text

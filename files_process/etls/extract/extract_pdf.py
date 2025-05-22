@@ -9,6 +9,7 @@ def extract(log: pd.DataFrame, logger, *args, **kwargs) -> tuple:
     """Extracts data from PDF files and returns a DataFrame."""
     settings = kwargs
     files_to_process = []
+    flavor = kwargs.get("flavor", "network")
 
     if "column_mapping" not in settings or not isinstance(settings["column_mapping"], list):
         logger.error("Missing required parameter 'column_mapping' or it is not a list.")
@@ -34,7 +35,7 @@ def extract(log: pd.DataFrame, logger, *args, **kwargs) -> tuple:
 
     for file in files_to_process:
         try:
-            tables = extractor.extract_tables(file, settings.get("password"), flavor="network")
+            tables = extractor.extract_tables(file, settings.get("pdf_password"), flavor=flavor)
             filtered = [table for table in tables if table is not None and len(table.columns) == len(settings["column_mapping"])]
             logger.info(f"Processed file {file}")
             insert_row(log, ["file_processed", file])
