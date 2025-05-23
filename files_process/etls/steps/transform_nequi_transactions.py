@@ -11,24 +11,42 @@ def clean_data(dataframe: pd.DataFrame, log: pd.DataFrame, logger, *args, **kwar
     """
 
     try:
-        # get month from kwargs and add it to the dataframe
-        dataframe["month"] = f"{kwargs.get('month')}/{kwargs.get('year')}"
+        # Get month from kwargs and add it to the dataframe
+        try:
+            dataframe["month"] = f"{kwargs.get('month')}/{kwargs.get('year')}"
+        except Exception as e:
+            log = insert_row(log, ["error", f"Error adding month to dataframe: {e}"])
+            logger.error(f"Error adding month to dataframe: {e}")
+            dataframe["month"] = ""
 
         # Fill empty strings with NaN
-        dataframe.replace(r"^\s*$", pd.NA, regex=True, inplace=True)
+        try:
+            dataframe = dataframe.replace(r"^\s*$", pd.NA, regex=True)
+        except Exception as e:
+            log = insert_row(log, ["error", f"Error replacing empty strings with NaN: {e}"])
+            logger.error(f"Error replacing empty strings with NaN: {e}")
 
         # Replace NaN values with 0 in numeric columns
         numeric_columns = ["value", "balance"]
         for column in numeric_columns:
-            dataframe[column] = dataframe[column].str.replace(",", "", regex=False)
-            dataframe[column] = dataframe[column].str.replace("$", "", regex=False)
-            dataframe[column] = dataframe[column].fillna(0)
-            dataframe[column] = pd.to_numeric(dataframe[column], errors="coerce")
-            dataframe = dataframe[pd.notna(dataframe[column])]
+            try:
+                dataframe[column] = dataframe[column].str.replace(",", "", regex=False)
+                dataframe[column] = dataframe[column].str.replace("$", "", regex=False)
+                dataframe[column] = dataframe[column].fillna(0)
+                dataframe[column] = pd.to_numeric(dataframe[column], errors="coerce")
+                dataframe = dataframe[pd.notna(dataframe[column])]
+            except Exception as e:
+                log = insert_row(log, ["error", f"Error processing numeric column {column}: {e}"])
+                logger.error(f"Error processing numeric column {column}: {e}")
 
-        # convert description and month to text
-        dataframe["description"] = dataframe["description"].astype(str)
-        dataframe["month"] = dataframe["month"].astype(str)
+        # Convert description and month to text
+        try:
+            dataframe["description"] = dataframe["description"].astype(str)
+            dataframe["month"] = dataframe["month"].astype(str)
+        except Exception as e:
+            log = insert_row(log, ["error", f"Error converting description and month to text: {e}"])
+            logger.error(f"Error converting description and month to text: {e}")
+
     except Exception as e:
         log = insert_row(log, ["error", f"Error al procesar {dataframe}: {e}"])
         logger.error(f"Error al procesar {dataframe}: {e}")
@@ -52,7 +70,7 @@ def transform_transactions(dataframe: pd.DataFrame, log: pd.DataFrame, logger, *
         dataframe["balance"] = dataframe["balance"]
         dataframe["bank"] = "Nequi"
         dataframe["extra_data"] = ""
-        dataframe.drop(columns=["description", "value"], inplace=True)
+        dataframe = dataframe.drop(columns=["description", "value"])
         dataframe["charges"] = dataframe["charges"].apply(lambda x: abs(x) if x < 0 else x)
     except Exception as e:
         log = insert_row(log, ["error", f"Error al transformar {dataframe}: {e}"])
