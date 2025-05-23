@@ -49,10 +49,13 @@ def get_extract_info(text) -> PDfInfo:
             'content': base_prompt,
         }
     ]
-
-    response: ChatResponse = chat(model='gemma3:4b', messages=messages, format=PDfInfo.model_json_schema())
-    json_response = PDfInfo.model_validate_json(response.message.content)
-    return json_response
+    try:
+        response: ChatResponse = chat(model='gemma3:4b', messages=messages, format=PDfInfo.model_json_schema())
+        json_response = PDfInfo.model_validate_json(response.message.content)
+        return json_response
+    except Exception as e:
+        print(e)
+        return None
 
 
 async def handle_error(message, file_name, error_message, log, debug_channel, clear_processing=True, error_category="error"):
@@ -189,9 +192,10 @@ async def handle_extract_message(message, logger, debug_channel, log_channel, se
             task_params['filepath'] = download_path
 
             text = pdf_extractor.get_text(str(download_path), pdf_password)
-            info = get_extract_info(text).to_dict()
 
-            task_params.update({key: value for key, value in info.items() if key not in task_params})
+            info = get_extract_info(text)
+            if info is not None:
+                task_params.update({key: value for key, value in info.to_dict().items() if key not in task_params})
 
             if "month" not in task_params or "year" not in task_params:
                 await handle_error(
