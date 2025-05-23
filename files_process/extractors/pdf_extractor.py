@@ -119,14 +119,18 @@ class PDFExtractor:
         return df
 
     def get_text(self, file: str, password: str = None, pages: int = -1, *args, **kwargs):
-        pdfFile = pypdf.PdfReader(file)
-        if pdfFile.is_encrypted:
-            pdfFile.decrypt(password)
+        try:
+            pdfFile = pypdf.PdfReader(file)
+            if pdfFile.is_encrypted:
+                pdfFile.decrypt(password)
 
-        if pages < 0:
-            num_pages = pdfFile.get_num_pages()
-        else:
-            num_pages = pages - 1
+            if pages < 0:
+                num_pages = pdfFile.get_num_pages()
+            else:
+                num_pages = pages - 1
 
-        text = ''.join([pdfFile.get_page(page).extract_text() for page in range(num_pages)])
-        return text
+            text = ''.join([pdfFile.get_page(page).extract_text() for page in range(num_pages)])
+            return text
+        except Exception as e:
+            print(e)
+            return ""
