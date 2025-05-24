@@ -62,14 +62,12 @@
         "type": "Step"
       }
     ],
-    "load_provider": {},
+    "load_providert.`month`, t.bank": {},
     "post_load_provider": {
       "name": "post_load",
       "script": "files_process/etls/steps/post_load.py",
-      "method": "post_load",
-      "args": {
-        "processed_dir": "files_process/processed"
-      },
+      "method": "delete_file",
+      "args": {},
       "type": "Step"
     }
   },
@@ -145,10 +143,8 @@
     "post_load_provider": {
       "name": "post_load",
       "script": "files_process/etls/steps/post_load.py",
-      "method": "post_load",
-      "args": {
-        "processed_dir": "files_process/processed"
-      },
+      "method": "delete_file",
+      "args": {},
       "type": "Step"
     }
   },
@@ -224,10 +220,8 @@
     "post_load_provider": {
       "name": "post_load",
       "script": "files_process/etls/steps/post_load.py",
-      "method": "post_load",
-      "args": {
-        "processed_dir": "files_process/processed"
-      },
+      "method": "delete_file",
+      "args": {},
       "type": "Step"
     }
   }

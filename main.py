@@ -16,10 +16,7 @@ def main():
         # Configurar el logger
         logger = setup_logger()
 
-        # etl = ETL(settings)
-        # log1 = etl.run("process_transactions", password="1001773168", month=4, year=2023)
-        # print(log1)
-        # log = etl.run("process_resume", password="1001773168", month=4, year=2023)
+        # log = FileProcessor(settings).process_file("bbva", password='1001773168', month=4, year=2025)
         # print(log)
 
         # Iniciar el bot
