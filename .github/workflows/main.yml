@@ -1,0 +1,25 @@
+name: Deploy to Dokku on DigitalOcean VPS
+
+on:
+  push:
+    branches:
+      - main  # Or your default branch
+
+jobs:
+  deploy-to-dokku:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Required to push to Dokku
+
+      - name: Deploy to Dokku via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }} # User on VPS (e.g., 'dokku') that can run dokku commands
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "Deploying commit ${{ github.sha }} of repository ${{ github.repository }} to Dokku app bank-extraction-bot"
+            dokku git:sync --build bank-extraction-bot https://github.com/${{ github.repository }}.git ${{ github.sha }}
