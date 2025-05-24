@@ -1,3 +1,4 @@
+import os
 from pandas import DataFrame
 from sqlalchemy import create_engine
 
@@ -8,13 +9,29 @@ def save_to_sql(dataframe: DataFrame, log: DataFrame, logger, *args, **kwargs):
     """Load data into a Mysql database."""
 
     if "destination" not in kwargs:
-        raise ValueError("The 'destination' argument is required.")
-    if "connection_string" not in kwargs:
-        raise ValueError("The 'connection_string' argument is required.")
+        error_message = "The 'destination' argument is required."
+        logger.error(error_message)
+        log = insert_row(log, ["error", error_message])
+        return None, log
 
     destination = kwargs["destination"]
-    connection_string = kwargs["connection_string"]
     operation = kwargs.get("operation", "replace")
+    connection_string_env_var = kwargs.get("connection_string_env_var")
+
+    if connection_string_env_var:
+        connection_string = os.environ.get(connection_string_env_var)
+        if not connection_string:
+            error_message = f"Environment variable '{connection_string_env_var}' not set."
+            logger.error(error_message)
+            log = insert_row(log, ["error", error_message])
+            return None, log
+    elif "connection_string" in kwargs:
+        connection_string = kwargs["connection_string"]
+    else:
+        error_message = "Either 'connection_string_env_var' or 'connection_string' argument is required."
+        logger.error(error_message)
+        log = insert_row(log, ["error", error_message])
+        return None, log
 
     try:
         engine = create_engine(connection_string)

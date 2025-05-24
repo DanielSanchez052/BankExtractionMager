@@ -1,4 +1,5 @@
 
+import os
 from files_process.etls.utils import insert_row
 
 
@@ -8,13 +9,29 @@ def execute_store_procedure(log, logger, *args, **kwargs):
         logger.error("Error in previous step.")
         return log
 
-    if "connection_string" not in kwargs:
-        raise ValueError("The 'connection_string' argument is required.")
     if "stored_procedure" not in kwargs:
-        raise ValueError("The 'stored_procedure' argument is required.")
+        error_message = "The 'stored_procedure' argument is required."
+        logger.error(error_message)
+        log = insert_row(log, ["error", error_message])
+        return log
 
-    connection_string = kwargs["connection_string"]
     stored_procedure = kwargs["stored_procedure"]
+    connection_string_env_var = kwargs.get("connection_string_env_var")
+
+    if connection_string_env_var:
+        connection_string = os.environ.get(connection_string_env_var)
+        if not connection_string:
+            error_message = f"Environment variable '{connection_string_env_var}' not set."
+            logger.error(error_message)
+            log = insert_row(log, ["error", error_message])
+            return log
+    elif "connection_string" in kwargs:
+        connection_string = kwargs["connection_string"]
+    else:
+        error_message = "Either 'connection_string_env_var' or 'connection_string' argument is required."
+        logger.error(error_message)
+        log = insert_row(log, ["error", error_message])
+        return log
 
     procedure_params = []
     if 'procedure_params' in kwargs and isinstance(kwargs['procedure_params'], list):

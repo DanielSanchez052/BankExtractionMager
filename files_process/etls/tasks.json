@@ -32,7 +32,7 @@
         "method": "save_to_sql",
         "args": {
           "destination": "preload_transactions",
-          "connection_string": "",
+          "connection_string_env_var": "MYSQL_DB_URI",
           "operation": "replace"
         },
         "type": "Load"
@@ -42,7 +42,7 @@
         "script": "files_process/etls/steps/execute_sp.py",
         "method": "execute_store_procedure",
         "args": {
-          "connection_string": "",
+          "connection_string_env_var": "MYSQL_DB_URI",
           "stored_procedure": "validate_transactions",
           "procedure_params": [],
           "validate_error": true
@@ -54,7 +54,7 @@
         "script": "files_process/etls/steps/execute_sp.py",
         "method": "execute_store_procedure",
         "args": {
-          "connection_string": "",
+          "connection_string_env_var": "MYSQL_DB_URI",
           "stored_procedure": "save_transactions",
           "procedure_params": [],
           "validate_error": true
@@ -111,7 +111,7 @@
         "method": "save_to_sql",
         "args": {
           "destination": "preload_transaction_resume",
-          "connection_string": "",
+          "connection_string_env_var": "MYSQL_DB_URI",
           "operation": "replace"
         },
         "type": "Load"
@@ -121,7 +121,7 @@
         "script": "files_process/etls/steps/execute_sp.py",
         "method": "execute_store_procedure",
         "args": {
-          "connection_string": "",
+          "connection_string_env_var": "MYSQL_DB_URI",
           "stored_procedure": "validate_resume",
           "procedure_params": [],
           "validate_error": true
@@ -133,7 +133,7 @@
         "script": "files_process/etls/steps/execute_sp.py",
         "method": "execute_store_procedure",
         "args": {
-          "connection_string": "",
+          "connection_string_env_var": "MYSQL_DB_URI",
           "stored_procedure": "save_resume",
           "procedure_params": [],
           "validate_error": true
@@ -190,7 +190,7 @@
         "method": "save_to_sql",
         "args": {
           "destination": "preload_transactions",
-          "connection_string": "",
+          "connection_string_env_var": "MYSQL_DB_URI",
           "operation": "replace"
         },
         "type": "Load"
@@ -200,7 +200,7 @@
         "script": "files_process/etls/steps/execute_sp.py",
         "method": "execute_store_procedure",
         "args": {
-          "connection_string": "",
+          "connection_string_env_var": "MYSQL_DB_URI",
           "stored_procedure": "validate_transactions",
           "procedure_params": [],
           "validate_error": true
@@ -212,7 +212,7 @@
         "script": "files_process/etls/steps/execute_sp.py",
         "method": "execute_store_procedure",
         "args": {
-          "connection_string": "",
+          "connection_string_env_var": "MYSQL_DB_URI",
           "stored_procedure": "save_transactions",
           "procedure_params": [],
           "validate_error": true
